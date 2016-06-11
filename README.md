@@ -61,6 +61,8 @@ Find the script at TechNet Gallery
 ##Credits
 Written by: Thomas Stensitzki
 
+Related blog post: https://www.granikos.eu/en/justcantgetenough/PostId/234/simple-import-of-multiple-pst-files-for-a-single-user 
+
 Follow me:
 
 * My Blog: https://www.granikos.eu/en/justcantgetenough

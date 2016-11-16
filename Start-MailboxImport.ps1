@@ -7,7 +7,7 @@
     THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND. THE ENTIRE 
     RISK OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER.
 	
-    Version 1.6, 2016-08-17
+    Version 1.8, 2016-11-16
 
     .DESCRIPTION
 	
@@ -18,7 +18,7 @@
     .NOTES 
     Requirements 
     - Windows Server 2012 R2  
-    - Exchange Server 2013
+    - Exchange Server 2013/2016
 
     Revision History 
     -------------------------------------------------------------------------------- 
@@ -26,10 +26,18 @@
     1.1     log will now be stored in a subfolder (name equals Identity) 
     1.2     PST file renaming added
     1.3     Module ActiveDirectory removed. We use Get-Recipient now.
-    1.4		AcceptLargeDatalost would now be added if BadItemLimit is over 51
-    1.5		Parameter IncludeFodlers added
+    1.4		  AcceptLargeDatalost would now be added if BadItemLimit is over 51
+    1.5		  Parameter IncludeFodlers added
     1.6     Parameter TargetFolder added
-	
+    1.7     Parameter Recurse added
+    1.8     PST file rename after successful import added
+
+    .LINK
+    This script utilizes the GlobalFunctions module, which is described here:
+    https://www.granikos.eu/en/justcantgetenough/PostId/210/globalfunctions-shared-powershell-library
+
+
+    	
     .PARAMETER Identity  
     Type: string. Mailbox identity in which the pst files get imported
 
@@ -57,6 +65,12 @@
     .PARAMETER TargetFolder
     Import the files in to definied target folder. Can't be used together with FilenameAsTargetFolder
 
+    .PARAMETER Recurse
+    If this parameter is set all PST files in subfolders will be also imported
+
+    .PARAMETER RenameFileAfterImport
+    Rename successfully imported PST files to simplify a re-run of the script. A .PST file will be renamed to .imported
+
     .EXAMPLE
     Import all PST file into the mailbox "testuser"
     .\Start-MailboxImport.ps1 -Idenity testuser -Filepath "\\testserver\share"
@@ -67,30 +81,31 @@
 #>
 
 Param(
-  [parameter(Mandatory=$true,ValueFromPipeline=$false)]
+  [parameter(Mandatory=$true)]
     [string]$Identity,
-  [parameter(Mandatory=$false,ValueFromPipeline=$false)]
+  [parameter()]
     [switch]$Archive,
-  [parameter(Mandatory=$true,ValueFromPipeline=$false)]
+  [parameter(Mandatory=$true)]
     [string]$FilePath,
-  [parameter(Mandatory=$false,ValueFromPipeline=$false,ParameterSetName=’FN’)]
+  [parameter()]
     [switch]$FilenameAsTargetFolder,
-  [parameter(Mandatory=$false,ValueFromPipeline=$false)]
-    [int32]$BadItemLimit = 0,
-  [parameter(Mandatory=$false,ValueFromPipeline=$false)]
+  [parameter()]
+    [int]$BadItemLimit = 0,
+  [parameter()]
     [switch]$ContinueOnError,
-  [parameter(Mandatory=$false,ValueFromPipeline=$false)]
-    [int32]$SecondsToWait = 320,
-  [parameter(Mandatory=$false,ValueFromPipeline=$false)]
+  [parameter()]
+    [int]$SecondsToWait = 320,
+  [parameter()]
     [string]$IncludeFolders,
-  [parameter(Mandatory=$false,ValueFromPipeline=$false,ParameterSetName=’TN’)]
-    [string]$TargetFolder
+  [parameter()]
+    [string]$TargetFolder,
+  [parameter()]
+    [switch]$Recurse,
+    [switch]$RenameFileAfterImport
 )
 
-Set-StrictMode -Version Latest
-
 # IMPORT GLOBAL MODULE
-Import-Module BDRFunctions
+Import-Module GlobalFunctions
 $ScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
 $ScriptName = $MyInvocation.MyCommand.Name
 # Create a log folder for each identity
@@ -105,14 +120,23 @@ Function Optimize-PstFileName {
   param (
     [string]$PstFilePath
   )
-    
-  foreach ($pst in (Get-ChildItem -Path $PstFilePath -Include '*.pst')) {
+  
+  if ($Recurse)
+  {
+    $Files = Get-ChildItem -Path $PstFilePath -Include '*.pst' -Recurse
+  }
+  else
+  {
+    $Files = Get-ChildItem -Path $PstFilePath -Include '*.pst'  
+  }
+  
+  foreach ($pst in $Files) {
   
     $newFileName = $pst.Name
     
     # List of chars, add additional chars as needed
-    $chars = @(' ','(',')')
-    $chars | % {$newFileName = $newFileName.replace($_,'')} 
+    $chars = @(' ','(',')','&','$')
+    $chars | ForEach-Object {$newFileName = $newFileName.replace($_,'')} 
     
     $logger.Write("Renaming PST: Old: $($pst.Name) New: $($newFileName)")
     
@@ -125,7 +149,9 @@ Function Optimize-PstFileName {
 
 # Check if -FilenameAsTargetFolder and -TargetFolder are set both
 if (($FilenameAsTargetFolder) -and ($TargetFolder)) {
+
   Write-Host '-FilenameAsTargetFolder and -TargetFolder can not be used together'
+
   Exit(1)
 }
 
@@ -141,7 +167,12 @@ if ($FilePath.StartsWith('\\')) {
     Optimize-PstFileName -PstFilePath $FilePath
 
     # Fetch all pst files in source folder
-    $PstFiles = Get-ChildItem -Path $FilePath -Include '*.pst'
+    if ($Recurse) {
+      $PstFiles = Get-ChildItem -Path $FilePath -Include '*.pst' -Recurse
+    }
+    else{
+      $PstFiles = Get-ChildItem -Path $FilePath -Include '*.pst'
+    }
 
     # Check if there are any files to import
     If (($PstFiles| Measure-Object).Count) {
@@ -162,7 +193,12 @@ if ($FilePath.StartsWith('\\')) {
 
       foreach ($PSTFile in $PSTFiles) {
     
-        $ImportName = $($Name.SamAccountName + '-' + $PstFile.Name)
+        If ($Recurse) {
+          $ImportName = $($Name.SamAccountName + '-' + $PstFiles.DirectoryName + '-' + $PstFile.Name)
+        }
+        else {
+          $ImportName = $($Name.SamAccountName + '-' + $PstFile.Name)
+        }
         $InfoMessage = "Create New-MailboxImportRequest for user: $($Name.Name) and file: $($PSTFile)"
 
         # Built command string
@@ -205,16 +241,18 @@ if ($FilePath.StartsWith('\\')) {
 
         # Invoke command
         try {
-          Invoke-Expression -Command $cmd | Out-Null
+          $null = Invoke-Expression -Command $cmd
         } 
         catch {
           $ErrorMessage = "Error accessing creating import request for user $($Name.Name). Script aborted."
+
           Write-Error $ErrorMessage
           $logger.Write($ErrorMessage,1)
+
           Exit(1)
         }
       
-        # Some nice sleep
+        # Some nice sleep .zzzzzzzzzzz
         Start-Sleep -Seconds 5
 
         [bool]$NotFinished = $true
@@ -242,6 +280,12 @@ if ($FilePath.StartsWith('\\')) {
               
                 # Write statistics to log, before we deleted the request (just in case need to lookup something)
                 $logger.Write($importRequestStatisticsReport)
+                
+                # Rename imported PST-File if import was successful
+                if ($RenameFileAfterImport) {
+                  $OldFilename = Get-MailboxImportRequest -Mailbox $($($Name).SamAccountName) -Name $($ImportName) | select-object -ExpandProperty FilePath
+                  Rename-Item -Path "$($OldFilename)" -NewName "$($OldFilename).imported"
+                }
 
                 # Delete mailbox import request
                 Get-MailboxImportRequest -Mailbox $($($Name).SamAccountName) -Name $($ImportName) | Remove-MailboxImportRequest -Confirm:$false

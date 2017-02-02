@@ -7,7 +7,7 @@
     THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND. THE ENTIRE 
     RISK OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER.
 	
-    Version 1.8, 2016-11-16
+    Version 1.9, 2017-02-02
 
     .DESCRIPTION
 	
@@ -15,10 +15,14 @@
     PST file names can used as target folder names for import. PST files are reanmed to support
     filename limitations by New-MailboxImportRequest cmdlet.
 
+    .LINK 
+    More information can be found at http://scripts.granikos.eu
+
     .NOTES 
     Requirements 
     - Windows Server 2012 R2  
-    - Exchange Server 2013/2016
+    - Exchange Server 2013
+    - Global module for logging, 
 
     Revision History 
     -------------------------------------------------------------------------------- 
@@ -26,18 +30,13 @@
     1.1     log will now be stored in a subfolder (name equals Identity) 
     1.2     PST file renaming added
     1.3     Module ActiveDirectory removed. We use Get-Recipient now.
-    1.4		  AcceptLargeDatalost would now be added if BadItemLimit is over 51
-    1.5		  Parameter IncludeFodlers added
+    1.4		AcceptLargeDataloss would now be added if BadItemLimit is over 51
+    1.5		Parameter IncludeFodlers added
     1.6     Parameter TargetFolder added
     1.7     Parameter Recurse added
     1.8     PST file rename after successful import added
-
-    .LINK
-    This script utilizes the GlobalFunctions module, which is described here:
-    https://www.granikos.eu/en/justcantgetenough/PostId/210/globalfunctions-shared-powershell-library
-
-
-    	
+    1.9     Updated parameter set and some PowerShell hygiene
+	
     .PARAMETER Identity  
     Type: string. Mailbox identity in which the pst files get imported
 
@@ -96,11 +95,12 @@ Param(
   [parameter()]
     [int]$SecondsToWait = 320,
   [parameter()]
-    [string]$IncludeFolders,
+    [string]$IncludeFolders="",
   [parameter()]
-    [string]$TargetFolder,
+    [string]$TargetFolder="",
   [parameter()]
     [switch]$Recurse,
+  [parameter()]
     [switch]$RenameFileAfterImport
 )
 
@@ -108,6 +108,7 @@ Param(
 Import-Module GlobalFunctions
 $ScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
 $ScriptName = $MyInvocation.MyCommand.Name
+
 # Create a log folder for each identity
 $logger = New-Logger -ScriptRoot $ScriptDir -ScriptName $ScriptName -LogFileRetention 14 -LogFolder $Identity
 $logger.Write('Script started')
@@ -118,16 +119,20 @@ $InfoScriptFinished = 'Script finished.'
 #>
 Function Optimize-PstFileName {
   param (
-    [string]$PstFilePath
+    [Parameter(Mandatory=$true)][string]$PstFilePath
   )
   
-  if ($Recurse)
-  {
+  if ($Recurse) {
+
+    # Find all files ending with .pst recursively in all folders
     $Files = Get-ChildItem -Path $PstFilePath -Include '*.pst' -Recurse
+
   }
-  else
-  {
+  else {
+
+    # Find all files ending with .pst in current folder
     $Files = Get-ChildItem -Path $PstFilePath -Include '*.pst'  
+
   }
   
   foreach ($pst in $Files) {

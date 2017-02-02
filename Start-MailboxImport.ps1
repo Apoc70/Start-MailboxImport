@@ -22,7 +22,7 @@
     Requirements 
     - Windows Server 2012 R2  
     - Exchange Server 2013
-    - Global module for logging, 
+    - Global module for logging, https://gallery.technet.microsoft.com/Centralized-logging-64e20f97
 
     Revision History 
     -------------------------------------------------------------------------------- 

@@ -1,7 +1,7 @@
 # Start-MailboxImport.ps1
 Import one or more PST files into an exisiting mailbox or a archive.
 
-##Description
+## Description
 This script imports one or more PST files into a user mailbox or a user archive as batch.
 
 PST file names can used as target folder names for import. PST files are renamed to support file name limitations by New-MailboxImportRequest cmdlet.
@@ -15,33 +15,29 @@ Requirements
 - Exchange Server 2013
 - GlobalFunctions PowerShell Module, https://www.powershellgallery.com/packages/GlobalFunctions
 
-##Inputs
+## Parameters
+###Identity  
+Mailbox identity in which the PST files get imported
 
-Identity  
-Type: string. Mailbox identity in which the PST files get imported
+### Archive
+Import PST files into the online archive.
 
-Archive
-Type: switch. Import PST files into the online archive.
+### FilePath
+Folder which contains the PST files. Has to be an UNC path.
 
-FilePath
-Type:string. Folder which contains the PST files. Has to be an UNC path.
+### FilenameAsTargetFolder
+Import the PST files into dedicated target folders. The folder name will equal the file name.
 
-FilenameAsTargetFolder
-Type: switch. Import the PST files into dedicated target folders. The folder name will equal the file name.
+### BadItemLimit
+Standard is set to 0. Don't max it out because the script doesn't add "AcceptLargeDatalost".
 
-BadItemLimit
-Type: int32. Standard is set to 0. Don't max it out because the script doesn't add "AcceptLargeDatalost".
+### ContinueOnError
+If set the script continue with the next PST file if a import request failed.
 
-ContinueOnError
-Type: switch. If set the script continue with the next PST file if a import request failed.
+### ContinueOnError
+Timespan to wait between import request staus checks in seconds. Default: 320
 
-ContinueOnError
-Type: int32. Timespan to wait between import request staus checks in seconds. Default: 320
-
-##Outputs
-None
-
-##Examples
+## Examples
 ```
 .\Start-MailboxImport.ps1 -Identity testuser -Filepath "\\testserver\share"
 ```
@@ -53,26 +49,26 @@ Import all PST files into the mailbox "testuser"
 Import all PST files into the mailbox "testuser". Use PST file name as target folder name. Wait 90 seconds between each status check.
 
 
-##TechNet Gallery
+## TechNet Gallery
 Find the script at TechNet Gallery
 * https://gallery.technet.microsoft.com/Purge-Exchange-Server-2013-c2e03e72
 
 
-##Credits
+## Credits
 Written by: Thomas Stensitzki
 
 Related blog post: https://www.granikos.eu/en/justcantgetenough/PostId/234/simple-import-of-multiple-pst-files-for-a-single-user 
 
-Follow me:
+## Social
 
-* My Blog: https://www.granikos.eu/en/justcantgetenough
+* My Blog: http://justcantgetenough.Granikos.eu
 * Archived Blog: http://www.sf-tools.net/
-* Twitter:	https://twitter.com/stensitzki
+* Twitter: https://twitter.com/stensitzki
 * LinkedIn:	http://de.linkedin.com/in/thomasstensitzki
-* Github:	https://github.com/Apoc70
+* Github: https://github.com/Apoc70
 
 For more Office 365, Cloud Security and Exchange Server stuff checkout services provided by Granikos
 
-* Blog:     http://blog.granikos.eu/
-* Website:	https://www.granikos.eu/en/
-* Twitter:	https://twitter.com/granikos_de
+* Blog: http://blog.granikos.eu/
+* Website: https://www.granikos.eu/en/
+* Twitter: https://twitter.com/granikos_de

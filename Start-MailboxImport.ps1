@@ -55,7 +55,7 @@
     .PARAMETER ContinueOnError
     Type: switch. If set the script continue with the next pst file if a import request failed.
 
-    .PARAMETER ContinueOnError
+    .PARAMETER SecondsToWait
     Type: int32. Timespan to wait between import request staus checks in seconds. Default: 320
 	
     .PARAMETER IncludeFolders

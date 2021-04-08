@@ -105,7 +105,16 @@ Param(
 )
 
 # IMPORT GLOBAL MODULE
-Import-Module GlobalFunctions
+# Import GlobalFunctions
+if($null -ne (Get-Module -Name GlobalFunctions -ListAvailable).Version) {
+  Import-Module -Name GlobalFunctions
+}
+else {
+  Write-Warning -Message 'Unable to load GlobalFunctions PowerShell module.'
+  Write-Warning -Message 'Open an administrative PowerShell session and run Import-Module GlobalFunctions'
+  Write-Warning -Message 'Please check http://bit.ly/GlobalFunctions for further instructions'
+  exit
+}
 $ScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
 $ScriptName = $MyInvocation.MyCommand.Name
 

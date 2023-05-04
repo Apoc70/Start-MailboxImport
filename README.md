@@ -12,8 +12,8 @@ All files of a given folder will be imported into the user's mailbox.
 
 ## Requirements
 
-- Windows Server 2012 R2
-- Exchange Server 2013+
+- Windows Server 2016+
+- Exchange Server 2016+
 - GlobalFunctions PowerShell Module, [https://www.powershellgallery.com/packages/GlobalFunctions](https://www.powershellgallery.com/packages/GlobalFunctions)
 
 ## Parameters
@@ -44,7 +44,7 @@ If set the script continue with the next PST file if a import request failed.
 
 ### SecondsToWait
 
-Timespan to wait between import request staus checks in seconds. Default: 
+Timespan to wait between import request staus checks in seconds. Default:
 
 ### IncludeFolders
 
@@ -85,19 +85,19 @@ RISK OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER.
 
 Written by: Thomas Stensitzki
 
-Related blog post: [https://www.granikos.eu/en/justcantgetenough/PostId/234/simple-import-of-multiple-pst-files-for-a-single-user](https://www.granikos.eu/en/justcantgetenough/PostId/234/simple-import-of-multiple-pst-files-for-a-single-user)
+Related blog post: [https://granikos.eu/simple-import-of-multiple-pst-files-for-a-single-user/](https://granikos.eu/simple-import-of-multiple-pst-files-for-a-single-user/)
 
 ## Stay connected
 
-- My Blog: [http://justcantgetenough.granikos.eu](http://justcantgetenough.granikos.eu)
+- Blog: [https://blog.granikos.eu](https://blog.granikos.eu)
 - Twitter: [https://twitter.com/stensitzki](https://twitter.com/stensitzki)
 - LinkedIn: [http://de.linkedin.com/in/thomasstensitzki](http://de.linkedin.com/in/thomasstensitzki)
 - Github: [https://github.com/Apoc70](https://github.com/Apoc70)
 - MVP Blog: [https://blogs.msmvps.com/thomastechtalk/](https://blogs.msmvps.com/thomastechtalk/)
 - Tech Talk YouTube Channel (DE): [http://techtalk.granikos.eu](http://techtalk.granikos.eu)
+- Tech & Community Podcast (DE): [http://podcast.granikos.eu](http://podcast.granikos.eu)
 
-For more Office 365, Cloud Security, and Exchange Server stuff checkout services provided by Granikos
+For more Microsoft 365, Cloud Security, and Exchange Server stuff checkout the services provided by Granikos
 
-- Blog: [http://blog.granikos.eu](http://blog.granikos.eu)
-- Website: [https://www.granikos.eu/en/](https://www.granikos.eu/en/)
+- Website: [https://granikos.eu](https://granikos.eu)
 - Twitter: [https://twitter.com/granikos_de](https://twitter.com/granikos_de)

@@ -1,43 +1,43 @@
 <#
     .SYNOPSIS
     Import one or more pst files into an exisiting mailbox or a archive
-   
+
     Thomas Stensitzki
-	
-    THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND. THE ENTIRE 
+
+    THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND. THE ENTIRE
     RISK OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER.
-	
-    Version 1.9, 2017-02-02
+
+    Version 2.0, 2023-05-04
 
     .DESCRIPTION
-	
+
     This script importss one or more PST files into a user mailbox or a user archive as batch.
     PST file names can used as target folder names for import. PST files are reanmed to support
     filename limitations by New-MailboxImportRequest cmdlet.
 
-    .LINK 
+    .LINK
     More information can be found at http://scripts.granikos.eu
 
-    .NOTES 
-    Requirements 
-    - Windows Server 2012 R2  
-    - Exchange Server 2013
-    - Global module for logging, https://gallery.technet.microsoft.com/Centralized-logging-64e20f97
+    .NOTES
+    Requirements
+    - Windows Server 2016+
+    - Exchange Server 2016+
 
-    Revision History 
-    -------------------------------------------------------------------------------- 
+    Revision History
+    --------------------------------------------------------------------------------
     1.0     Initial release
-    1.1     log will now be stored in a subfolder (name equals Identity) 
+    1.1     log will now be stored in a subfolder (name equals Identity)
     1.2     PST file renaming added
     1.3     Module ActiveDirectory removed. We use Get-Recipient now.
-    1.4		AcceptLargeDataloss would now be added if BadItemLimit is over 51
-    1.5		Parameter IncludeFodlers added
+    1.4		  AcceptLargeDataloss would now be added if BadItemLimit is over 51
+    1.5		  Parameter IncludeFodlers added
     1.6     Parameter TargetFolder added
     1.7     Parameter Recurse added
     1.8     PST file rename after successful import added
     1.9     Updated parameter set and some PowerShell hygiene
-	
-    .PARAMETER Identity  
+    2.0     Updated documentation
+
+    .PARAMETER Identity
     Type: string. Mailbox identity in which the pst files get imported
 
     .PARAMETER Archive
@@ -57,10 +57,10 @@
 
     .PARAMETER SecondsToWait
     Type: int32. Timespan to wait between import request staus checks in seconds. Default: 320
-	
+
     .PARAMETER IncludeFolders
     Type: string. If set the import would only import the given folder + subfolders. Note: If you want to import subfolders you have to use /* at the end of the folder. (Test/*).
-    
+
     .PARAMETER TargetFolder
     Import the files in to definied target folder. Can't be used together with FilenameAsTargetFolder
 
@@ -130,7 +130,7 @@ Function Optimize-PstFileName {
   param (
     [Parameter(Mandatory=$true)][string]$PstFilePath
   )
-  
+
   if ($Recurse) {
 
     # Find all files ending with .pst recursively in all folders
@@ -140,20 +140,20 @@ Function Optimize-PstFileName {
   else {
 
     # Find all files ending with .pst in current folder
-    $Files = Get-ChildItem -Path $PstFilePath -Include '*.pst'  
+    $Files = Get-ChildItem -Path $PstFilePath -Include '*.pst'
 
   }
-  
+
   foreach ($pst in $Files) {
-  
+
     $newFileName = $pst.Name
-    
+
     # List of chars, add additional chars as needed
     $chars = @(' ','(',')','&','$')
-    $chars | ForEach-Object {$newFileName = $newFileName.replace($_,'')} 
-    
+    $chars | ForEach-Object {$newFileName = $newFileName.replace($_,'')}
+
     $logger.Write("Renaming PST: Old: $($pst.Name) New: $($newFileName)")
-    
+
     if($newFileName -ne $pst.Name) {
         # Rename PST file
         $pst | Rename-Item -NewName $newFileName
@@ -170,13 +170,13 @@ if (($FilenameAsTargetFolder) -and ($TargetFolder)) {
 }
 
 # Get all pst files from file share
-if ($FilePath.StartsWith('\\')) { 
+if ($FilePath.StartsWith('\\')) {
 
   try {
     # Check file path and add wildcard, if required
     If ((!$FilePath.EndsWith('*')) -and (!$FilePath.EndsWith('\'))) {
         $FilePath = $FilePath + '\*'
-    } 
+    }
 
     Optimize-PstFileName -PstFilePath $FilePath
 
@@ -190,7 +190,7 @@ if ($FilePath.StartsWith('\\')) {
 
     # Check if there are any files to import
     If (($PstFiles| Measure-Object).Count) {
-  
+
       $InfoMessage = "Note: Script will wait $($SecondsToWait)s between each status check!"
       Write-Host $InfoMessage
       $logger.Write($InfoMessage)
@@ -198,7 +198,7 @@ if ($FilePath.StartsWith('\\')) {
       # Fetch AD user object from Active Directory
       try {
         $Name = Get-Recipient $Identity
-      } 
+      }
       catch {
         $InfoMessage = "Error getting recipient $($Identity). Script aborted."
         Write-Error $InfoMessage
@@ -206,7 +206,7 @@ if ($FilePath.StartsWith('\\')) {
       }
 
       foreach ($PSTFile in $PSTFiles) {
-    
+
         If ($Recurse) {
           $ImportName = $($Name.SamAccountName + '-' + $PstFiles.DirectoryName + '-' + $PstFile.Name)
         }
@@ -232,7 +232,7 @@ if ($FilePath.StartsWith('\\')) {
         else {
           $InfoMessage = $InfoMessage + '.'
         }
-      
+
         # Check TargetFolder setup
         if ($FilenameAsTargetFolder) {
           [string]$FolderName = $($PSTFile.Name.ToString()).Replace('.pst', '')
@@ -249,14 +249,14 @@ if ($FilePath.StartsWith('\\')) {
           $cmd = $cmd + " -IncludeFolders ""$($IncludeFolders)"""
           $InfoMessage = $InfoMessage + " IncludeFolders:""$($IncludeFolders)""."
         }
-					
+
         Write-Host $InfoMessage
         $logger.Write($InfoMessage)
 
         # Invoke command
         try {
           $null = Invoke-Expression -Command $cmd
-        } 
+        }
         catch {
           $ErrorMessage = "Error accessing creating import request for user $($Name.Name). Script aborted."
 
@@ -265,36 +265,36 @@ if ($FilePath.StartsWith('\\')) {
 
           Exit(1)
         }
-      
+
         # Some nice sleep .zzzzzzzzzzz
         Start-Sleep -Seconds 5
 
         [bool]$NotFinished = $true
         $logger.Write("Waiting for import request $($ImportName) to be completed.")
-      
+
         # Loop to check ongoing status of the request
         while($NotFinished) {
-      
+
           try {
-      
+
             $ImportRequest = Get-MailboxImportRequest -Mailbox $($($Name).SamAccountName) -Name $($ImportName) -ErrorAction SilentlyContinue
-        
+
             switch ($ImportRequest.Status) {
-          
+
               'Completed' {
-            
+
                 # Remove the ImportRequest so we can't run into the limit
-              
+
                 $InfoMessage = "Import request $($ImportName) completed successfully."
                 Write-Host $InfoMessage
                 $logger.Write("$($InfoMessage) Import Request Statistics Report:")
 
                 # Fetch Import statistics
                 $importRequestStatisticsReport = (Get-MailboxImportRequest -Mailbox $($($Name).SamAccountName) -Name $($ImportName) | Get-MailboxImportRequestStatistics -IncludeReport).Report
-              
+
                 # Write statistics to log, before we deleted the request (just in case need to lookup something)
                 $logger.Write($importRequestStatisticsReport)
-                
+
                 # Rename imported PST-File if import was successful
                 if ($RenameFileAfterImport) {
                   $OldFilename = Get-MailboxImportRequest -Mailbox $($($Name).SamAccountName) -Name $($ImportName) | select-object -ExpandProperty FilePath
@@ -308,23 +308,23 @@ if ($FilePath.StartsWith('\\')) {
                 Write-Host $InfoMessage
                 $logger.Write($InfoMessage)
 
-                $NotFinished = $false 
+                $NotFinished = $false
               }
-                           
+
               'Failed' {
-            
+
                 # oops, something happend
-            
+
                 $InfoMessage = "Error: Administrative action is needed. ImportRequest $($ImportName) failed."
-              
+
                 Write-Error $InfoMessage
                 $logger.Write($InfoMessage,1)
-              
+
                 if (-not $ContinueOnError) {
                   Write-Host $InfoScriptFinished
                   $logger.Write($InfoScriptFinished)
                   Exit(2)
-                } 
+                }
                 else {
                   $InfoMessage = 'Info: ContinueonError is set. Continue with next PST file.'
                   Write-Host $InfoMessage
@@ -332,19 +332,19 @@ if ($FilePath.StartsWith('\\')) {
                   $NotFinished = $false
                 }
               }
-                                   
+
               'FailedOther' {
-            
+
                 # oops, something special happend and we need to take care about it.
-              
+
                 Write-Error "Error: Administrative action is needed. ImportRequest $($ImportName) failed."
                 $logger.Write("Error: Administrative action is needed. ImportRequest $($ImportName) failed.",1)
-              
+
                 if (-not $ContinueOnError) {
                   Write-Host $InfoScriptFinished
                   $logger.Write($InfoScriptFinished)
                   Exit(2)
-                } 
+                }
                 else {
                   $InfoMessage = 'Info: ContinueonError is set. Continue with next pst file.'
                   Write-Host $InfoMessage
@@ -352,40 +352,40 @@ if ($FilePath.StartsWith('\\')) {
                   $NotFinished = $false
                 }
               }
-                           
-              default { 
-            
+
+              default {
+
                 # default action: wait
-            
+
                 Write-Host "Waiting for import $($ImportName) to be completed. Status: $($ImportRequest.Status)"
                 Start-Sleep -Seconds $SecondsToWait
               }
-            
+
             }
-          } 
+          }
           catch {
             $InfoMessage = "Error on getting Mailboximport statistics. Trying again in $($SecondsToWait) seconds."
             Write-Host $InfoMessage
             $logger.Write($InfoMessage, 1)
-          
+
             # wait before we try for the next step
             Start-Sleep -Seconds $SecondsToWait
           }
         }
       }
-    } 
+    }
     else {
       $InfoMessage = "No files for import found in $($FilePath)."
       Write-Host $InfoMessage
       $logger.Write($InfoMessage)
     }
-  } 
+  }
   catch {
     $InfoMessage = "Error accessing $($FilePath). Script aborted."
     Write-Error $InfoMessage
     $logger.Write($InfoMessage, 1)
   }
-} 
+}
 else {
   $InfoMessage = 'Filepath have to be an UNC path. Scipt aborted.'
   Write-Error $InfoMessage
